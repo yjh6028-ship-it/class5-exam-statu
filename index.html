@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1학년 5반 응시 현황 조회</title>
+    <title>송도고등학교 응시 현황 조회</title>
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -112,7 +112,7 @@
             fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
-                    // 변경된 핵심 로직: 파일명에 '({입력번호} 완료)' 패턴이 정확히 포함된 파일만 찾음
+                    // 변경된 핵심 로직: 파일명에 '({입력번호}완료)' 패턴이 정확히 포함된 파일만 찾음
                     const searchPattern = `(${keyword}완료)`;
                     
                     const matchingFiles = data.filter(file => 
