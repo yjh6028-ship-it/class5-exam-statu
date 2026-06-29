@@ -1,156 +1,76 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>송도고등학교 현황 조회</title>
-    <style>
-        body {
-            font-family: 'Malgun Gothic', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f5f6fa;
-            color: #333;
-        }
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        h2 { margin-top: 0; color: #2c3e50; }
-        p { color: #7f8c8d; margin-bottom: 25px; font-size: 14px; }
-        
-        input[type="text"] {
-            width: 80%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            font-size: 16px;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        input[type="text"]:focus { border-color: #3498db; }
-        
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            width: 80%;
-        }
-        button:hover { background-color: #2980b9; }
-        
-        .msg { margin-top: 20px; font-size: 14px; font-weight: bold; min-height: 20px;}
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin: 15px auto 0;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
+// ⚙️ 선생님의 깃허브 정보
+const OWNER = 'yjh6028-ship-it'; 
+const REPO = 'class5-exam-statu';   
+const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
 
-    <div class="container">
-        <h2>📊 응시 현황 조회</h2>
-        <p>자신의 회원번호를 정확히 입력해 주세요.</p>
-        
-        <input type="text" id="searchKeyword" placeholder="회원번호 입력" maxlength="8" onkeypress="handleEnter(event)">
-        <button onclick="searchAndRedirect()">조회하기</button>
-        
-        <div id="loader" class="loader"></div>
-        <div id="status" class="msg"></div>
-    </div>
+window.addEventListener('DOMContentLoaded', () => {
+    const savedKeyword = localStorage.getItem('savedMemberId');
+    if (savedKeyword) {
+        document.getElementById('searchKeyword').value = savedKeyword;
+    }
+});
 
-    <script>
-        // ⚙️ 선생님의 깃허브 정보
-        const OWNER = 'yjh6028-ship-it'; 
-        const REPO = 'class5-exam-statu';   
-        const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
+function handleEnter(e) {
+    if(e.key === 'Enter') searchAndRedirect();
+}
 
-        // 💡 [추가된 부분] 페이지가 로드될 때 로컬 스토리지에 저장된 회원번호가 있으면 불러옵니다.
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedKeyword = localStorage.getItem('savedMemberId');
-            if (savedKeyword) {
-                document.getElementById('searchKeyword').value = savedKeyword;
-            }
-        });
+function searchAndRedirect() {
+    const keyword = document.getElementById('searchKeyword').value.trim();
+    const statusEl = document.getElementById('status');
+    const loaderEl = document.getElementById('loader');
 
-        function handleEnter(e) {
-            if(e.key === 'Enter') searchAndRedirect();
-        }
+    if(!keyword) {
+        statusEl.innerText = "수험번호를 입력해 주세요!";
+        statusEl.style.color = "#e74c3c";
+        return;
+    }
 
-        function searchAndRedirect() {
-            const keyword = document.getElementById('searchKeyword').value.trim();
-            const statusEl = document.getElementById('status');
-            const loaderEl = document.getElementById('loader');
+    localStorage.setItem('savedMemberId', keyword);
 
-            if(!keyword) {
-                statusEl.innerText = "수험번호를 입력해 주세요!";
+    statusEl.innerText = "서버에서 최신 파일을 찾는 중입니다...";
+    statusEl.style.color = "#7f8c8d";
+    loaderEl.style.display = "block";
+
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
+            return response.json();
+        })
+        .then(data => {
+            // 앱스 스크립트 양식에 맞게 검색 패턴 지정 (예: (105완료))
+            const searchPattern = `(${keyword}완료)`;
+            
+            // 1. PDF 파일이면서 파일명에 수험번호 패턴이 포함된 파일들만 필터링
+            const matchingFiles = data.filter(file => 
+                file.name.toLowerCase().endsWith('.pdf') && 
+                file.name.includes(searchPattern)
+            );
+
+            if (matchingFiles.length > 0) {
+                // 2. 날짜가 맨 앞에 있으므로 localeCompare 정렬 시 정확하게 시간순 정렬됩니다.
+                matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
+                
+                // 맨 마지막 요소가 가장 최근에 생성된 파일
+                const latestPdf = matchingFiles[matchingFiles.length - 1];
+
+                statusEl.innerText = "파일 확인 완료! 화면을 이동합니다.";
+                statusEl.style.color = "#27ae60";
+                
+                // 💡 [핵심 수정] 상대 경로(./) 대신 깃허브가 제공하는 실제 파일 다운로드 URL로 이동합니다.
+                // 만약 깃허브 페이지 내에서 상대적 경로 처리가 확실하다면 기존 코드를 쓰셔도 되지만, 
+                // 아래의 download_url을 쓰는 것이 가장 안전하고 확실합니다.
+                window.location.href = latestPdf.download_url;
+                
+            } else {
+                loaderEl.style.display = "none";
+                statusEl.innerText = `[${keyword}] 수험번호로 등록된 최신 자료가 없습니다.`;
                 statusEl.style.color = "#e74c3c";
-                return;
             }
-
-            // 💡 [추가된 부분] 조회를 시도할 때 입력된 회원번호를 기기(브라우저)에 저장합니다.
-            localStorage.setItem('savedMemberId', keyword);
-
-            statusEl.innerText = "서버에서 최신 파일을 찾는 중입니다...";
-            statusEl.style.color = "#7f8c8d";
-            loaderEl.style.display = "block";
-
-            fetch(apiUrl)
-                .then(response => response.json())
-                .then(data => {
-                    const searchPattern = `(${keyword}완료)`;
-                    
-                    const matchingFiles = data.filter(file => 
-                        file.name.toLowerCase().endsWith('.pdf') && 
-                        file.name.includes(searchPattern)
-                    );
-
-                    if (matchingFiles.length > 0) {
-                        matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
-                        const latestPdf = matchingFiles[matchingFiles.length - 1];
-
-                        statusEl.innerText = "파일 확인 완료! 화면을 이동합니다.";
-                        statusEl.style.color = "#27ae60";
-                        
-                        window.location.href = `./${latestPdf.name}`;
-                    } else {
-                        loaderEl.style.display = "none";
-                        statusEl.innerText = `[${keyword}] 수험번호로 등록된 자료가 없습니다.`;
-                        statusEl.style.color = "#e74c3c";
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    loaderEl.style.display = "none";
-                    statusEl.innerText = "오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
-                    statusEl.style.color = "#e74c3c";
-                });
-        }
-    </script>
-</body>
-</html>
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loaderEl.style.display = "none";
+            statusEl.innerText = "오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+            statusEl.style.color = "#e74c3c";
+        });
+}
