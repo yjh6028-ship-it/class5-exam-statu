@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1학년 5반 학급 응시현황</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f6fa;
+            color: #333;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .msg { font-size: 16px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="loader"></div>
+    <div id="status" class="msg">최신 응시 현황 파일을 불러오는 중입니다...</div>
+
+    <script>
+        // ⚙️ 선생님의 깃허브 정보로 똑같이 채워주세요.
+        const OWNER = 'yjh6028-ship-it'; 
+        const REPO = 'class5-exam-statu';   
+
+        // 깃허브 저장소 내부의 파일 목록을 가져오는 API 주소
+        const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
+
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                // 1. 파일 목록 중 확장자가 .pdf로 끝나는 파일들만 필터링
+                const pdfFiles = data.filter(file => file.name.toLowerCase().endsWith('.pdf'));
+
+                if (pdfFiles.length > 0) {
+                    // 2. 가나다/날짜 순으로 정렬하여 가장 최신 파일(마지막 파일) 선택
+                    pdfFiles.sort((a, b) => a.name.localeCompare(b.name));
+                    const latestPdf = pdfFiles[pdfFiles.length - 1];
+
+                    document.getElementById('status').innerText = "파일을 찾았습니다. 이동합니다...";
+                    
+                    // 3. 해당 PDF 파일로 즉시 리다이렉트(이동)
+                    window.location.href = `./${latestPdf.name}`;
+                } else {
+                    document.getElementById('status').innerText = "현재 업로드된 응시 현황 PDF 파일이 없습니다.";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('status').innerText = "오류가 발생했습니다. 파일명을 확인해 주세요.";
+            });
+    </script>
+</body>
+</html>
