@@ -113,7 +113,7 @@
                 .then(response => response.json())
                 .then(data => {
                     // 변경된 핵심 로직: 파일명에 '({입력번호} 완료)' 패턴이 정확히 포함된 파일만 찾음
-                    const searchPattern = `(${keyword} 완료)`;
+                    const searchPattern = `(${keyword}완료)`;
                     
                     const matchingFiles = data.filter(file => 
                         file.name.toLowerCase().endsWith('.pdf') && 
