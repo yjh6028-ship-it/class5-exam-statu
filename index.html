@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1학년 5반 학급 응시현황</title>
+    <title>1학년 5반 응시 현황 조회</title>
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -16,58 +16,133 @@
             background-color: #f5f6fa;
             color: #333;
         }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        h2 { margin-top: 0; color: #2c3e50; }
+        p { color: #7f8c8d; margin-bottom: 25px; font-size: 14px; }
+        
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus { border-color: #3498db; }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 80%;
+        }
+        button:hover { background-color: #2980b9; }
+        
+        .msg { margin-top: 20px; font-size: 14px; font-weight: bold; min-height: 20px;}
         .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+            margin: 15px auto 0;
+            display: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .msg { font-size: 16px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="loader"></div>
-    <div id="status" class="msg">최신 응시 현황 파일을 불러오는 중입니다...</div>
+    <div class="container">
+        <h2>📊 응시 현황 조회</h2>
+        <p>자신의 회원번호를 정확히 입력해 주세요.</p>
+        
+        <input type="text" id="searchKeyword" placeholder="회번호 입력" maxlength="8" onkeypress="handleEnter(event)">
+        <button onclick="searchAndRedirect()">조회하기</button>
+        
+        <div id="loader" class="loader"></div>
+        <div id="status" class="msg"></div>
+    </div>
 
     <script>
         // ⚙️ 선생님의 깃허브 정보로 똑같이 채워주세요.
         const OWNER = 'yjh6028-ship-it'; 
         const REPO = 'class5-exam-statu';   
-
-        // 깃허브 저장소 내부의 파일 목록을 가져오는 API 주소
         const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
 
-        fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-                // 1. 파일 목록 중 확장자가 .pdf로 끝나는 파일들만 필터링
-                const pdfFiles = data.filter(file => file.name.toLowerCase().endsWith('.pdf'));
+        function handleEnter(e) {
+            if(e.key === 'Enter') searchAndRedirect();
+        }
 
-                if (pdfFiles.length > 0) {
-                    // 2. 가나다/날짜 순으로 정렬하여 가장 최신 파일(마지막 파일) 선택
-                    pdfFiles.sort((a, b) => a.name.localeCompare(b.name));
-                    const latestPdf = pdfFiles[pdfFiles.length - 1];
+        function searchAndRedirect() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            const statusEl = document.getElementById('status');
+            const loaderEl = document.getElementById('loader');
 
-                    document.getElementById('status').innerText = "파일을 찾았습니다. 이동합니다...";
+            if(!keyword) {
+                statusEl.innerText = "수험번호를 입력해 주세요!";
+                statusEl.style.color = "#e74c3c";
+                return;
+            }
+
+            statusEl.innerText = "서버에서 최신 파일을 찾는 중입니다...";
+            statusEl.style.color = "#7f8c8d";
+            loaderEl.style.display = "block";
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // 변경된 핵심 로직: 파일명에 '({입력번호} 완료)' 패턴이 정확히 포함된 파일만 찾음
+                    const searchPattern = `(${keyword} 완료)`;
                     
-                    // 3. 해당 PDF 파일로 즉시 리다이렉트(이동)
-                    window.location.href = `./${latestPdf.name}`;
-                } else {
-                    document.getElementById('status').innerText = "현재 업로드된 응시 현황 PDF 파일이 없습니다.";
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('status').innerText = "오류가 발생했습니다. 파일명을 확인해 주세요.";
-            });
+                    const matchingFiles = data.filter(file => 
+                        file.name.toLowerCase().endsWith('.pdf') && 
+                        file.name.includes(searchPattern)
+                    );
+
+                    if (matchingFiles.length > 0) {
+                        // 가장 최신 파일 정렬 (날짜가 뒤로 갈수록 이름 정렬 순서상 뒤로 가도록 설정)
+                        matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
+                        const latestPdf = matchingFiles[matchingFiles.length - 1];
+
+                        statusEl.innerText = "파일 확인 완료! 화면을 이동합니다.";
+                        statusEl.style.color = "#27ae60";
+                        
+                        // 해당 PDF 파일로 이동
+                        window.location.href = `./${latestPdf.name}`;
+                    } else {
+                        loaderEl.style.display = "none";
+                        statusEl.innerText = `[${keyword}] 수험번호로 등록된 자료가 없습니다.`;
+                        statusEl.style.color = "#e74c3c";
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loaderEl.style.display = "none";
+                    statusEl.innerText = "오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+                    statusEl.style.color = "#e74c3c";
+                });
+        }
     </script>
 </body>
 </html>
