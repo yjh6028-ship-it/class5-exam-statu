@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>송도고등학교 현황 조회</title>
+    <title>송도고등학교 응시 현황 조회</title>
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -86,10 +86,10 @@
 
     <div class="container">
         <h2>📊 응시 현황 조회</h2>
-        <p>자신의 회원번호를 정확히 입력해 주세요.</p>
+        <p>자신의 학년반 코드(예시 : 1학년 5반 → 105)를 입력해 주세요.</p>
         
         <div class="input-group">
-            <input type="text" id="searchKeyword" placeholder="회원번호 입력" maxlength="8" onkeypress="handleEnter(event)">
+            <input type="text" id="searchKeyword" placeholder="학년반 코드 입력" maxlength="8" onkeypress="handleEnter(event)">
             <button onclick="searchAndRedirect()">조회하기</button>
         </div>
         
